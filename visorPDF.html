@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Visor de PDFs</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- pdf.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-blue-100 min-h-screen flex flex-col">
+
+  <header class="bg-white shadow-md p-4 text-center">
+    <h1 class="text-2xl font-bold text-blue-700">Visor de PDFs</h1>
+    <p class="text-gray-600">Sube tus archivos PDF y haz clic para verlos más grandes.</p>
+  </header>
+
+  <main class="flex flex-col sm:flex-row flex-1 overflow-hidden ">
+    <!-- Panel izquierdo -->
+    <aside class="w-full sm:w-2/5 border-r bg-white p-4 overflow-y-auto">
+      <form class="mb-6">
+        <input id="pdfUpload" type="file" accept="application/pdf" multiple
+          class="block w-full text-sm text-gray-500
+                 file:mr-4 file:py-2 file:px-4
+                 file:rounded-full file:border-0
+                 file:text-sm file:font-semibold
+                 file:bg-blue-600 file:text-white
+                 hover:file:bg-blue-700 cursor-pointer"
+        />
+      </form>
+
+      <!-- Miniaturas -->
+      <div id="thumbnails" class="grid grid-cols-3 gap-x-2 space-y-4"></div>
+    </aside>
+
+    <!-- Panel derecho -->
+    <section class="flex-1 bg-gray-100 p-4 flex items-center justify-center">
+      <iframe id="pdfViewer" class="w-full h-full rounded-xl shadow-lg bg-white"></iframe>
+    </section>
+  </main>
+
+  <script>
+    const fileInput = document.getElementById("pdfUpload");
+    const thumbnailsContainer = document.getElementById("thumbnails");
+    const pdfViewer = document.getElementById("pdfViewer");
+
+    const pdfjsLib = window['pdfjs-dist/build/pdf'];
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
+
+    fileInput.addEventListener("change", async (e) => {
+      const files = Array.from(e.target.files);
+      for (const file of files) {
+        if (file.type !== "application/pdf") continue;
+
+        const fileURL = URL.createObjectURL(file);
+
+        // Renderizar la miniatura con pdf.js
+        const pdf = await pdfjsLib.getDocument(fileURL).promise;
+        const page = await pdf.getPage(1); // primera página
+
+        const scale = 0.2; // tamaño miniatura
+        const viewport = page.getViewport({ scale });
+
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d");
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        await page.render({ canvasContext: context, viewport }).promise;
+
+        // Contenedor de miniatura
+        const thumbDiv = document.createElement("div");
+        thumbDiv.className =
+          "cursor-pointer border rounded-lg overflow-hidden shadow hover:shadow-md transition bg-gray-50";
+
+        // Nombre del archivo
+        const caption = document.createElement("p");
+        caption.textContent = file.name;
+        caption.className = "text-xs text-center text-gray-600 truncate p-1";
+
+        thumbDiv.appendChild(canvas);
+        thumbDiv.appendChild(caption);
+        thumbnailsContainer.appendChild(thumbDiv);
+
+        // Click para abrir en visor
+        thumbDiv.addEventListener("click", () => {
+          pdfViewer.src = fileURL;
+        });
+
+        // Abrir automáticamente el primero subido
+        if (!pdfViewer.src) {
+          pdfViewer.src = fileURL;
+        }
+      }
+    });
+  </script>
+</body>
+</html>
