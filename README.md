@@ -1,2 +1,2 @@
-# visorPDF
+# visor PDF
 PDF seleccionable
